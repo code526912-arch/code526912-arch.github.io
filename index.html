@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>온라인 쿠지 안정화 버전</title>
+<link rel="stylesheet" href="./style.css">
+
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#070707">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="온라인 쿠지">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="./icon-192.png">
+</head>
+<body>
+
+<div id="fileNotice" style="display:none;background:#3b1111;border:1px solid #d7b46a;color:#ffd36d;padding:10px;margin:8px;border-radius:10px">
+아이폰 파일앱 미리보기에서는 버튼이 안 먹을 수 있어요. GitHub Pages/Netlify에 올린 뒤 Safari 주소로 접속하면 정상 작동합니다.
+</div>
+<script>
+if(location.protocol === "file:"){
+  var n=document.getElementById("fileNotice");
+  if(n)n.style.display="block";
+}
+</script>
+
+<div class="header">
+  <div class="title"><h1 id="kujiTitle">온라인 쿠지</h1><small>판당 가격: <span id="priceText">10,000</span> / 계좌: <span id="accountText">샘플 계좌</span></small></div>
+  <div class="statbar">
+    <div class="stat">남은 티켓<br><b><span id="remainText">100</span> / <span id="totalText">100</span></b></div>
+    <div class="stat">진행률<br><b><span id="progressText">0%</span></b></div>
+    <button data-action="randomseq">🔢 랜덤 순번</button><button data-action="roulette">🎡 룰렛</button>
+    <button data-action="save">💾 저장</button><button data-action="load">📂 불러오기</button><button data-action="export">📤 CSV</button>
+    <button data-action="stock">🏆 상 현황</button><button data-action="selectedbig">🔎 선택번호</button><button data-action="undo">↩ 취소</button>
+    <button data-action="sound">🔊 소리</button><button data-action="broadcast">📺 방송</button><button data-action="newboard">＋ 새 판</button><button class="deleteBtn" data-action="deleteboard">🗑 삭제</button><button class="red" data-action="admin">⚙ 설정</button>
+  </div>
+</div>
+<div class="tabBar" id="tabBar"></div>
+<div class="mobileQuickBar"><button data-action="top">🎫 번호판</button><button data-action="selectedbig">🔎 선택</button><button data-action="stock">🏆 현황</button><button data-action="admin">⚙ 설정</button></div>
+
+<div class="layout">
+  <div class="leftCol">
+    <div class="panel"><h3>구매자 대기줄</h3><input id="buyerName" placeholder="닉네임"><div class="row"><input id="buyerCount" type="number" min="1" placeholder="구매장수"><button class="red" data-action="addbuyer">추가</button></div><div id="buyerList"></div></div>
+    <div class="panel"><h3>구매자별 현황 / 누적 랭킹</h3><div id="rankingList"></div></div>
+    <div class="panel"><h3>최근 당첨 기록</h3><div id="logList"></div></div>
+  </div>
+  <main class="panel">
+    <div class="current">현재 진행자: <b id="currentBuyerText">선택 없음</b><div style="color:#aaa;font-size:13px">구매자를 선택한 뒤 번호를 선택하거나 랜덤으로 선택하세요.</div></div>
+    <div class="openBox">
+      <input id="ticketInput" type="number" min="1" placeholder="번호 입력"><button data-action="selectinput">선택</button>
+      <input id="randomPickCount" type="number" min="1" value="1"><button data-action="randompos">랜덤 위치</button><button data-action="shuffle">판 섞기</button>
+      <button class="red" data-action="singleopen">개별 개봉</button><button class="goldBtn" data-action="batchopen">일괄 개봉</button><button class="goldBtn" data-action="randombatch">랜덤 일괄</button>
+    </div>
+    <div class="selectedNums" id="pendingText">선택된 티켓 없음</div>
+    <div class="progressWrap"><div class="progress" id="progressBar"></div></div>
+    <div class="grid" id="board"></div>
+  </main>
+  <aside class="panel"><h3>상위상 남은 현황</h3><div id="prizeList"></div></aside>
+</div>
+
+<div class="modal" id="adminModal"><div class="modalBox">
+  <h2 style="text-align:center">⚙ 관리자 설정</h2>
+  <div class="formBlock"><label>판 이름</label><input id="setTitle"><label>전체 티켓 수</label><input id="setTotal" type="number" min="1"></div>
+  <div class="formBlock"><label>판당 가격</label><input id="setPrice"><label>계좌 정보</label><input id="setAccount"></div>
+  <div class="formBlock"><label>티켓 앞면 이미지</label><input id="ticketFrontUrl" placeholder="이미지 URL"><input id="ticketFrontFile" type="file" accept="image/*"><button data-action="clearticketimg">앞면 이미지 제거</button><div style="font-size:12px;color:#aaa">업로드 이미지는 자동으로 모바일용으로 압축됩니다.</div><img id="ticketPreview" class="preview" style="display:none"></div>
+  <div class="formBlock"><label>라스트원</label><input id="lastOneName" placeholder="라스트원 상품명"><input id="lastOneUrl" placeholder="이미지 URL"><input id="lastOneFile" type="file" accept="image/*"></div>
+  <div class="formBlock"><label>상위상 설정</label><div style="font-size:13px;color:#aaa">뒤에서 나오는 랜덤 숫자 기준. 예: 1 또는 1,25,130</div><div id="prizeSettings"></div><button data-action="addprize">+ 상 추가</button></div>
+  <div class="row"><button class="red" data-action="applysettings">설정 저장 및 적용</button><button data-action="closeadmin">닫기</button></div>
+</div></div>
+
+<div class="modal" id="randomModal"><div class="modalBox" style="text-align:center;width:430px"><h2>랜덤 일괄</h2><label>선택 개수</label><input id="randomCount" type="number" value="10" min="1"><label>섞는 횟수</label><input id="shuffleCount" type="number" value="12" min="1"><div class="row" style="justify-content:center;margin-top:14px"><button class="goldBtn" data-action="startrandom">섞어서 바로 개봉</button><button data-action="closerandom">취소</button></div></div></div>
+<div class="modal" id="shuffleModal"><div class="modalBox" style="text-align:center"><h1>쿠지통 섞는 중</h1><h3><span id="shuffleNow">0</span> / <span id="shuffleTotal">0</span>회</h3><div id="pickedNums" class="selectedNums">잠시만 기다려주세요</div></div></div>
+<div class="modal" id="duguModal"><div class="modalBox resultBox"><h2 id="duguTitle">일괄 개봉 중...</h2><div class="questionGrid" id="questionGrid"></div></div></div>
+<div class="modal" id="confirmModal"><div class="modalBox" style="text-align:center"><h2 class="gold">개봉 확인</h2><div class="selectedNums"><h2 id="confirmBuyer"></h2><div id="confirmDesc"></div><div id="confirmTicket" style="margin-top:10px"></div></div><div class="row" style="justify-content:center"><button data-action="closeconfirm">뒤로가기</button><button class="goldBtn" data-action="startopen">개봉 시작</button></div></div></div>
+<div class="modal" id="openingModal"><div class="modalBox" style="text-align:center"><h2 id="openingTitle">티켓 개봉 중</h2><div style="color:#aaa;margin-bottom:8px">마우스/손가락으로 티켓을 잡고 뜯어주세요.</div><div class="revealCard" id="revealCard"></div></div></div>
+<div class="resultModal" id="resultModal"><div class="resultBox single"><div id="resultBuyer"></div><div class="bigPrize" id="resultPrize"></div><img id="resultImg" style="display:none"><h2 id="resultName"></h2><button class="red" data-action="closeresult">닫기</button></div></div>
+<div class="resultModal" id="multiModal"><div class="resultBox"><h2 class="gold">🎉 일괄 개봉 결과</h2><div class="multiGrid" id="multiResults"></div><button class="goldBtn" data-action="closemulti">결과 닫기</button></div></div>
+
+<div class="stockBigOverlay" id="stockBigOverlay"><div style="display:flex;justify-content:space-between;align-items:center"><h1 class="gold">🏆 상별 남은 수량</h1><button class="red" data-action="closestock">닫기</button></div><div class="stockBigGrid" id="stockBigGrid"></div></div>
+<div class="selectedPopup" id="selectedPopup"><h2 class="gold">개봉 전 선택된 번호</h2><div class="selectedPopupList" id="selectedPopupList">선택된 티켓 없음</div><div class="row" style="justify-content:center;margin-top:14px"><button data-action="closeselected">닫기</button><button class="red" data-action="selectedopen">개별 개봉</button></div></div>
+<div class="winnerShowcase" id="winnerShowcase"><div class="winnerShowBox"><div class="winnerShowMeta" id="winnerShowMeta"></div><div class="winnerShowRank" id="winnerShowRank"></div><img id="winnerShowImg" style="display:none"><div class="winnerShowName" id="winnerShowName"></div><div style="color:#aaa;margin-top:12px">화면 또는 다음 버튼을 누르면 넘어갑니다</div><button class="goldBtn" data-action="nextwinner" style="margin-top:12px">다음</button></div></div>
+
+
+<div class="prizeAlert" id="prizeAlert">
+  <div class="prizeAlertBox">
+    <div class="prizeAlertMeta" id="prizeAlertMeta"></div>
+    <div class="prizeAlertRank" id="prizeAlertRank"></div>
+    <img class="prizeAlertImg" id="prizeAlertImg" style="display:none">
+    <div class="prizeAlertName" id="prizeAlertName"></div>
+    <button class="goldBtn" data-action="closeprizealert" style="margin-top:16px">확인</button>
+  </div>
+</div>
+
+<script src="./app.js"></script>
+
+<script>
+(function(){
+  if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) {
+    window.addEventListener("load", function(){
+      navigator.serviceWorker.register("./sw.js").catch(function(){});
+    });
+  }
+})();
+</script>
+
+</body>
+</html>
